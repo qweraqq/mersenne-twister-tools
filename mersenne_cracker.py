@@ -118,6 +118,38 @@ class MersenneCracker:
             state[i] = shifted ^ (temp << 1) & self.lower_mask
         return state
 
+    def untemper(self, observerd_values):
+        observerd_values = list(observerd_values)
+        original_state = []
+        for i in range(len(observerd_values)):  # reverses the temper operations
+            y = observerd_values[i]
+            y = self.untemper_right(y, self.l)
+            y = self.untemper_left(y, self.t, self.c)
+            y = self.untemper_left(y, self.s, self.b)
+            y = self.untemper_right_mask(y, self.u, self.d)
+            # self.original_state[i] = y
+            original_state.append(y)
+        return original_state
+
+    def untwist_one(self, state, index_to_untwist):
+        """
+        这里的state是twist以后新的state
+        i = index_to_untwist
+        state[i] only depends on state[i+1], state[i+self.m]
+        """
+        i = index_to_untwist
+        state = list(state)
+        temp = state[i] ^ state[(i + self.m) % self.n]
+        if temp % 2:
+            temp ^= self.a
+        shifted = (temp << 1) & self.upper_mask
+        if temp & self.upper_mask == self.upper_mask:  # check if leading bit is the same
+            temp ^= self.a
+            shifted |= 1
+        state[i] = shifted ^ (temp << 1) & self.lower_mask
+        return state[i]
+
+        
 if __name__ == "__main__":
     # this can also be used to crack floats if you scale and round them first
     random_32 = MersenneTwister()
