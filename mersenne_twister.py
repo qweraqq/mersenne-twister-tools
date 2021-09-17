@@ -1,4 +1,17 @@
 class MersenneTwister:
+    """梅森旋转算法
+    https://en.wikipedia.org/wiki/Mersenne_Twister
+
+    w: word size (in number of bits)
+    n: degree of recurrence
+    m: middle word, an offset used in the recurrence relation defining the series x, 1 ≤ m < n
+    r: separation point of one word, or the number of bits of the lower bitmask, 0 ≤ r ≤ w − 1
+    a: coefficients of the rational normal form twist matrix
+    b, c: TGFSR(R) tempering bitmasks
+    s, t: TGFSR(R) tempering bit shifts
+    u, d, l: additional Mersenne Twister tempering bit shifts/masks
+
+    """    
     def __init__(self, mt_seed = 5489, variant = "mt19937", parameters = []):
         mt_seed = hash(mt_seed)  # hashes non-int types into ints, ints are unchanged
         if variant == "mt19937":  # 32-bit version of original twister
@@ -60,25 +73,37 @@ class MersenneTwister:
             self.f = parameters[12]
         else:
             raise NotImplementedError
-        self.lower_mask = (1 << self.r) - 1
-        self.upper_mask = 1 << self.r
-        self.seed(mt_seed)
+        self.lower_mask = (1 << self.r) - 1 # 0b1111111111111111111111111111111 if r=31
+        self.upper_mask = 1 << self.r # 0b10000000000000000000000000000000 if r=31
+        self.seed(mt_seed) # Initialization
 
     def random_integer(self):
+        """Tempered representation of internal states
+        where x is the next value from the series, 
+        y a temporary intermediate value, 
+        z the value returned from the algorithm, 
+        with ≪, ≫ as the bitwise left and right shifts, 
+        and & as the bitwise and. 
+        
+        The first and last transforms are added in order to improve lower-bit equidistribution. 
+        From the property of TGFSR, s + t ≥ ⌊w/2⌋ − 1 is required to reach the upper bound of equidistribution for the upper bits.
+        """        
         if self.index >= self.n:
             self.twist()
-        y = self.state[self.index]
-        y ^= ((y >> self.u) & self.d)  # tempers the int
+        x = self.state[self.index]
+        y = x ^ ((x >> self.u) & self.d) 
         y ^= ((y << self.s) & self.b)
         y ^= ((y << self.t) & self.c)
         y ^= (y >> self.l)
         self.index += 1
-        return self.fixed_int(y)
-
-    def random(self):
-        return self.random_integer() / ((1 << self.w) - 1)
+        return self.fixed_int(y) # lowest w bits of y
 
     def twist(self):
+        """Generate the next n values from the series x_i
+        x[k+n] only depends on x[k], x[k+m], x[k+l]
+
+        也就是说下个x_k的状态仅依赖于现在的x[k] x[k+m] x[x+l]
+        """        
         for i in range(self.n):
             temp = (self.state[i] & self.upper_mask) + (self.state[(i + 1) % self.n] & self.lower_mask)
             shifted = temp >> 1
@@ -88,6 +113,15 @@ class MersenneTwister:
         self.index = 0
 
     def seed(self, seed):
+        """Initialization
+        The state needed for a Mersenne Twister implementation is an array of n values of w bits each. 
+        To initialize the array, a w-bit seed value is used to supply x[0] through x[n−1] by setting x[0] to the seed value and thereafter setting
+
+        x[i] = some_function( x[i-1] ) for i to n-1
+        
+        Args:
+            seed ([type]): [description]
+        """        
         self.state = [0] * self.n
         self.state[0] = seed
         self.index = self.n
@@ -103,12 +137,16 @@ class MersenneTwister:
         self.state = new_state[0]
         self.index = new_state[1]
 
-    def fixed_int(self, n):  # truncate int to w bits
+    def fixed_int(self, n):  # 
+        """truncate int to lowest w bits
+        ((1 << self.w) - 1) = 0b11111111111111111111111111111111 if w=32
+        """        
         return ((1 << self.w) - 1) & n
 
 if __name__ == "__main__":
-    random_32 = MersenneTwister()  # using the default seed
-    print(f"Test 32-bit: {random_32.random_integer()}")
+    random_32 = MersenneTwister(mt_seed=123)
+    print(f"Test 32-bit {[random_32.random_integer() for i in range(32)]}")
+
     random_64 = MersenneTwister(variant = "mt19937_64")  # 64-bit numbers
     print(f"Test 64-bit: {random_64.random_integer()}")
     random_alt = MersenneTwister(variant = "mt11213b")  # alternate twister
@@ -117,4 +155,3 @@ if __name__ == "__main__":
     print(f"Original State: {random_32.random_integer()}")  # advances the state
     random_32.setstate(saved_state) # restores the state
     print(f"Restored State: {random_32.random_integer()}")  # verifies the restored state
-    print(f"Test Float: {random_32.random()}")
