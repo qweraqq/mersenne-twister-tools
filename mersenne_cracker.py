@@ -1,6 +1,11 @@
 from mersenne_twister import MersenneTwister
+from z3 import *
+
 
 class MersenneCracker:
+    """[summary]
+    https://nayak.io/posts/mersenne_twister/
+    """    
     def __init__(self, variant = "mt19937", parameters = []):
         if variant == "mt19937":  # 32-bit version of original twister
             self.w = 32
@@ -69,40 +74,11 @@ class MersenneCracker:
         assert len(outputs) >= self.n
         assert all(isinstance(i, int) for i in outputs)
         outputs = outputs[:self.n]
-        for i in range(self.n):  # reverses the temper operations
-            y = outputs[i]
-            y = self.untemper_right(y, self.l)
-            y = self.untemper_left(y, self.t, self.c)
-            y = self.untemper_left(y, self.s, self.b)
-            y = self.untemper_right_mask(y, self.u, self.d)
-            self.original_state[i] = y
-        return self.original_state
 
-    def untemper_right(self, n, shift):
-        i = 0
-        while i * shift < self.w:
-            new_mask = n & (((((1 << self.w) - 1) << (self.w - shift)) & ((1 << self.w) - 1)) >> (shift * i))
-            n ^= new_mask >> shift
-            i += 1
-        return n
+        # reverses the temper operations
+        self.original_state = map(self._untemper, outputs)
+        return list(self.original_state)
 
-    def untemper_right_mask(self, n, shift, mask):
-        i = 0
-        while i * shift < self.w:
-            new_mask = n & (((((1 << self.w) - 1) << (self.w - shift)) & ((1 << self.w) - 1)) >> (shift * i))
-            new_mask >>= shift
-            n ^= new_mask & mask
-            i += 1
-        return n
-
-    def untemper_left(self, n, shift, mask):
-        i = 0
-        while i * shift < self.w:
-            new_mask = n & ((((1 << self.w) - 1) >> (self.w - shift)) << (shift * i))
-            new_mask <<= shift
-            n ^= new_mask & mask
-            i += 1
-        return n
 
     def untwist(self, state):  # returns the past state before a twist
         state = list(state)
@@ -118,38 +94,47 @@ class MersenneCracker:
             state[i] = shifted ^ (temp << 1) & self.lower_mask
         return state
 
-    def untemper(self, observerd_values):
-        observerd_values = list(observerd_values)
-        original_state = []
-        for i in range(len(observerd_values)):  # reverses the temper operations
-            y = observerd_values[i]
-            y = self.untemper_right(y, self.l)
-            y = self.untemper_left(y, self.t, self.c)
-            y = self.untemper_left(y, self.s, self.b)
-            y = self.untemper_right_mask(y, self.u, self.d)
-            # self.original_state[i] = y
-            original_state.append(y)
-        return original_state
+    def _untemper(self, single_observed_value):
+        """https://www.schutzwerk.com/en/43/posts/attacking_a_random_number_generator/
+        x = self.state[self.index]
+        y1 = x ^ ((x >> self.u) & self.d) 
+        y2 = y1 ^ ((y1 << self.s) & self.b)
+        y3 = y2 ^ ((y2 << self.t) & self.c)
+        y ^= (y3 >> self.l)
 
-    def untwist_one(self, state, index_to_untwist):
-        """
-        这里的state是twist以后新的state
-        i = index_to_untwist
-        state[i] only depends on state[i+1], state[i+self.m]
-        """
-        i = index_to_untwist
-        state = list(state)
-        temp = state[i] ^ state[(i + self.m) % self.n]
-        if temp % 2:
-            temp ^= self.a
-        shifted = (temp << 1) & self.upper_mask
-        if temp & self.upper_mask == self.upper_mask:  # check if leading bit is the same
-            temp ^= self.a
-            shifted |= 1
-        state[i] = shifted ^ (temp << 1) & self.lower_mask
-        return state[i]
+        特别注意: 
+        1. 需要使用逻辑右移(移走的位填充为0)
+        2. 需要使用算术左移(尾部补0)
+        我们就是取高位和低位, 所以无论如何都是填0
 
+        https://docs.python.org/3/reference/expressions.html#shifting-operations
+        Python only lets you do the arithmetic shift
+        A right shift by n bits is defined as floor division by pow(2,n).
+        A left shift by n bits is defined as multiplication with pow(2,n).
+
+        对于正数, 逻辑和算术是一样的结果, 故前面的temper不影响
+        但在这里我们指定了位数, 故实现的时候需要区别
+
+        https://realpython.com/python-bitwise-operators/#arithmetic-vs-logical-shift
+        """
+        x = BitVec('x', self.w)
+        y1 = BitVec('y1', self.w)
+        y2 = BitVec('y2', self.w)
+        y3 = BitVec('y3', self.w)
+        y = BitVecVal(single_observed_value, self.w)
+        s = Solver()
+        equations = [
+            y1 == x ^ (LShR(x, self.u) & self.d),
+            y2 == y1 ^ ((y1 << self.s) & self.b),
+            y3 == y2 ^ ((y2 << self.t) & self.c),
+            y == y3 ^ LShR(y3, self.l)
+        ]
         
+        s.add(equations)
+        assert s.check() == sat
+        return s.model()[x].as_long()
+
+
 if __name__ == "__main__":
     # this can also be used to crack floats if you scale and round them first
     random_32 = MersenneTwister()
