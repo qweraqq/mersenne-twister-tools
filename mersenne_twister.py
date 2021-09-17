@@ -82,8 +82,7 @@ class MersenneTwister:
         where x is the next value from the series, 
         y a temporary intermediate value, 
         z the value returned from the algorithm, 
-        with ≪, ≫ as the bitwise left and right shifts, 
-        and & as the bitwise and. 
+        with ≪, ≫ as the bitwise left and right shifts and & as the bitwise and. 
         
         The first and last transforms are added in order to improve lower-bit equidistribution. 
         From the property of TGFSR, s + t ≥ ⌊w/2⌋ − 1 is required to reach the upper bound of equidistribution for the upper bits.
