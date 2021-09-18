@@ -143,7 +143,7 @@ if __name__ == "__main__":
     random_32 = MersenneTwister(mt_seed=123)
     randon_32_ints = [random_32.random_integer() for i in range(1024)]
     # 正确的1024个随机数
-    # 基于JS生成
+    # 基于JS生成 https://gist.github.com/banksean/300494
     random_ints = [
         2991312382,
         3062119789,
