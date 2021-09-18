@@ -78,30 +78,31 @@ class MersenneTwister:
         self.seed(mt_seed) # Initialization
 
     def random_integer(self):
-        """Tempered representation of internal states
-        where x is the next value from the series, 
-        y a temporary intermediate value, 
-        z the value returned from the algorithm, 
-        with ≪, ≫ as the bitwise left and right shifts and & as the bitwise and. 
-        
-        The first and last transforms are added in order to improve lower-bit equidistribution. 
-        From the property of TGFSR, s + t ≥ ⌊w/2⌋ − 1 is required to reach the upper bound of equidistribution for the upper bits.
-        """        
         if self.index >= self.n:
             self.twist()
         x = self.state[self.index]
+        self.index += 1
+        return self._temper(x)
+        
+    def _temper(self, x):
+        """Tempered representation of internal states
+        where x is the next value from the series, 
+        """        
         y = x ^ ((x >> self.u) & self.d) 
         y ^= ((y << self.s) & self.b)
         y ^= ((y << self.t) & self.c)
         y ^= (y >> self.l)
-        self.index += 1
         return self.fixed_int(y) # lowest w bits of y
+
 
     def twist(self):
         """Generate the next n values from the series x_i
         x[k+n] only depends on x[k], x[k+m], x[k+l]
 
         也就是说下个x_k的状态仅依赖于现在的x[k] x[k+m] x[x+l]
+
+        The first and last transforms are added in order to improve lower-bit equidistribution. 
+        From the property of TGFSR, s + t ≥ ⌊w/2⌋ − 1 is required to reach the upper bound of equidistribution for the upper bits.      
         """        
         for i in range(self.n):
             x = (self.state[i] & self.upper_mask) + (self.state[(i + 1) % self.n] & self.lower_mask)
