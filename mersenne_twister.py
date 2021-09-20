@@ -73,8 +73,8 @@ class MersenneTwister:
             self.f = parameters[12]
         else:
             raise NotImplementedError
-        self.lower_mask = (1 << self.r) - 1 # 0b1111111111111111111111111111111 if r=31
-        self.upper_mask = 1 << self.r # 0b10000000000000000000000000000000 if r=31
+        self.lower_mask = int("1"*(self.r), 2)
+        self.upper_mask = int("1"*(self.w-self.r)+"0"*self.r, 2)
         self.seed(mt_seed) # Initialization
 
     def random_integer(self):
