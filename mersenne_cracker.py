@@ -211,9 +211,7 @@ class MersenneCracker:
         assert len(observed_values) > self.n
         assert len(observed_values) == len(x)
 
-        best_guesses = [] # brute force twist index
-        best_guess_right_count = 0
-
+        guesses = set() # brute force twist index
         for tmp_twist_index in range(self.n, len(observed_values)):
             
             tmp_best_guess_right_count = 0
@@ -222,20 +220,11 @@ class MersenneCracker:
                     y_hat = self._predict_next_state(x[:-1-guess_index], tmp_twist_index)
                     # print(tmp_twist_index,guess_index, y_hat, observed_values[-1-guess_index])
                     if y_hat == observed_values[-1-guess_index]:
-                        tmp_best_guess_right_count += 1
-                    else:
-                        break
+                        guesses.add(tmp_twist_index)
                 except:
                     pass
-
-            if tmp_best_guess_right_count > best_guess_right_count:
-                best_guess_right_count = tmp_best_guess_right_count
-                best_guesses.clear()
-                best_guesses.append(tmp_twist_index)
-            elif tmp_best_guess_right_count == best_guess_right_count:
-                best_guesses.append(tmp_twist_index)
         
-        return list(best_guesses)
+        return list(guesses)
 
     def _temper(self, x):
         """Tempered representation of internal states
@@ -285,5 +274,16 @@ if __name__ == "__main__":
     cracker_64 = MersenneCracker(variant = "mt19937_64")
     guessed_random_numbers = cracker_64.predict_next_state(observed_values)
     assert 310574417605022995 in guessed_random_numbers
-    print("64-bit Case 2 Successfully Cracked")
+    print(f"64-bit Case 2 Successfully Cracked, actual_random_number=310574417605022995, guesses={guessed_random_numbers}")
+
+    # ==================================================
+    # 我们也可以利用方法2来应用到场景1
+    random_64 = MersenneTwister(variant = "mt19937_64")
+    outputs_64 = [random_64.random_integer() for _ in range(1024)]
+    cracker_64 = MersenneCracker(variant = "mt19937_64")
+    observed_values = outputs_64[:-1]
+    guessed_random_numbers = cracker_64.predict_next_state(observed_values)
+    assert outputs_64[-1] in guessed_random_numbers
+    print(f"64-bit Case 3 Successfully Cracked, actual_random_number={outputs_64[-1]}, guesses={guessed_random_numbers}")
+
 
