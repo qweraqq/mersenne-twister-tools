@@ -1,11 +1,8 @@
 # 伪随机数生成器
-
 ## 真随机与伪随机
 - 自然 (non-deterministic): 如从电子噪声采样
 - machines (deterministic)
-
-## 早期的PRNG
-- Enigma 
+## 早期的PRNG (Enigma )
 - by JOHN VON NEUMAN
 - Middle squares method
 ```
@@ -16,7 +13,9 @@ output the middle: 92054297
 next seed = 92054297
 ...
 ```
-# PRNG vuls 
+
+------
+# PRNG vuls
 ## Choose a "secure" seed
 - time
 - pids
@@ -41,44 +40,24 @@ r[i] = r[i-3] + r[i-31]
 with the LSB chopped off
 ```
 
-
+------
 # Mersenne twister
+## About Mersenne twister
 - PRNG period size: `2^19937 -1` 
 - [wikipedia](https://en.wikipedia.org/wiki/Mersenne_Twister)
 ```
 Is not cryptographically secure, unless the CryptMT variant (discussed below) is used. The reason is that observing a sufficient number of iterations (624 in the case of MT19937, since this is the size of the state vector from which future iterations are produced) allows one to predict all future iterations.
 ```
+## Attacks
+MersenneCracker有两种使用方式：
+1. 已知连续的n个随机数且没有发生twist -> 使用`crack_state` (注意代码中是取前n个随机数)
+2. 已知连续的n个随机数但不确定twist的情况 -> 使用`_brute_force_closest_twist_index`或者`predict_next_state`
 
-
-# mersenne-twister-tools
-A collection of various programs implementing and/or related to the Mersenne Twister PRNG. This is intended to be a bare-minimum Python 3 implementation that users can build off of.
-
-## Features
-- Seeding with any hashable type*
-- Saving and restoring the state
-- Pseudo-random ints and floats
-- Can be used to subclass [Random](https://docs.python.org/3/library/random.html)
-- Derive past generated numbers
-
-- Original 32-bit Mersenne Twister
-- Original 64-bit Mersenne Twister
-- Boost's mt11213b Mersenne Twister
-- Custom Parameters Mersenne Twister
-
-- Original 32-bit Mersenne Twister Cracker
-- Original 64-bit Mersenne Twister Cracker
-- Boost's mt11213b Mersenne Twister Cracker
-- Custom Parameters Mersenne Twister Cracker
-
-\*Set the environment variable `PYTHONHASHSEED = 0` to fix hashes for non-ints.
-
-## Contributing
-Please report any bugs that you encounter, and open a pull request if you have something to add to the program. Thank you!
-
-## References
-When I was creating this program, I found several resources that are useful for anyone seeking to understand the Mersenne Twister. They are listed here for reference:
-- https://en.wikipedia.org/wiki/Mersenne_Twister
-- http://www.math.sci.hiroshima-u.ac.jp/m-mat/MT/emt.html
-- https://sci-hub.se/10.1145/272991.272995
-- http://www.quadibloc.com/crypto/co4814.htm
-- https://jazzy.id.au/2010/09/22/cracking_random_number_generators_part_3.html
+------
+# Credits
+- [https://en.wikipedia.org/wiki/Mersenne_Twister](https://en.wikipedia.org/wiki/Mersenne_Twister)
+- [Bsides LV 2014 - Untwisting The Mersenne Twister: How I killed the PRNG - 05Aug2014](https://www.youtube.com/watch?v=f841Y7d3oDo&list=PLcO_vga2cLLu0PFSrJ8nsO92YBdC2lqwm&index=1)
+- [https://nayak.io/posts/mersenne_twister/](https://nayak.io/posts/mersenne_twister/)
+- [https://www.schutzwerk.com/en/43/posts/attacking_a_random_number_generator/](https://www.schutzwerk.com/en/43/posts/attacking_a_random_number_generator/)
+- [https://realpython.com/python-bitwise-operators/#arithmetic-vs-logical-shift](https://realpython.com/python-bitwise-operators/#arithmetic-vs-logical-shift)
+- [https://github.com/slightlyskepticalpotat/mersenne-twister-tools](https://github.com/slightlyskepticalpotat/mersenne-twister-tools)
