@@ -24,7 +24,7 @@ next seed = 92054297
 - comninations of any of the above
 ## Attacking
 ### Brute force
-- 32 bit seeds; o ffline attack; timestamp based seeds
+- 32 bit seeds; offline attack; timestamp based seeds
 - Algorithm
 1. Given set of observed numbers (may not be fully observed)
 2. Calculate random numbers and compare
