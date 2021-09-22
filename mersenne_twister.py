@@ -99,7 +99,7 @@ class MersenneTwister:
         """Generate the next n values from the series x_i
         x[k+n] only depends on x[k], x[k+m], x[k+l]
 
-        也就是说下个x_k的状态仅依赖于现在的x[k] x[k+m] x[x+l]
+        也就是说下个x_k的状态仅依赖于现在的x[k] x[k+m] x[k+l]
 
         The first and last transforms are added in order to improve lower-bit equidistribution. 
         From the property of TGFSR, s + t ≥ ⌊w/2⌋ − 1 is required to reach the upper bound of equidistribution for the upper bits.      
